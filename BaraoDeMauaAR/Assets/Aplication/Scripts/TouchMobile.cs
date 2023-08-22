@@ -4,32 +4,59 @@ using UnityEngine;
 
 public class TouchMobile : MonoBehaviour
 {
+    public Transform target;  // O objeto que será girado e zoomed
+    public float rotateSpeed = 2.0f;  // Velocidade de rotação
+    public float zoomSpeed = 0.5f;     // Velocidade de zoom
+    public float minZoomDistance = 2.0f;  // Distância mínima de zoom
+    public float maxZoomDistance = 10.0f; // Distância máxima de zoom
 
-     void Start()
-    {
-       
-    }
+    private Vector2 prevTouchPos;
+    private bool isTouching = false;
     void Update()
     {
-        Debug.Log("Metodo Update");
+        RotateObjects();
+        ZoomObject();
     }
 
-    private void MoveObjects()
+    private void RotateObjects()
     {
-        //MOver os objetos com um toque
-        //Vefifica toque na tela
-        if (Input.touchCount > 0)
+        // Detecta toques na tela
+        if (Input.touchCount == 1)
         {
-            Debug.Log("Tocou na tela");
-            //Armazena em uma variavel os toques
-            TouchMobile primaryTouch = Input.TouchMobile(0);
-            //Verificar toque de touce
-            //verifica se existe o movimento do dedo
-            if (primaryTouch.phase == TouchPhase.Moved)
+            // Rotação horizontal e vertical
+            if (Input.GetTouch(0).phase == TouchPhase.Moved)
             {
-                Vector2 directionRotation = new Vector2(primaryTouch.deltaPosition.y, primaryTouch.deltaPosition.x *1);
+                Vector2 touchDelta = Input.GetTouch(0).deltaPosition;
+                float rotationX = -touchDelta.x * rotateSpeed * Time.deltaTime;
+                float rotationY = touchDelta.y * rotateSpeed * Time.deltaTime;
+                target.Rotate(Vector3.up, rotationX, Space.World);
+                target.Rotate(Vector3.right, rotationY, Space.Self);
+            }
+        }
+    }
 
-                transform.Rotate(directionRotation * 5 * Time.deltaTime, Space.World);
+    private void ZoomObject()
+    {
+        // Detecção de pinch para zoom
+        if (Input.touchCount == 2)
+        {
+            Touch touch1 = Input.GetTouch(0);
+            Touch touch2 = Input.GetTouch(1);
+
+            if (touch1.phase == TouchPhase.Moved || touch2.phase == TouchPhase.Moved)
+            {
+                Vector2 touch1PrevPos = touch1.position - touch1.deltaPosition;
+                Vector2 touch2PrevPos = touch2.position - touch2.deltaPosition;
+
+                float prevMagnitude = (touch1PrevPos - touch2PrevPos).magnitude;
+                float currentMagnitude = (touch1.position - touch2.position).magnitude;
+
+                float zoomAmount = (prevMagnitude - currentMagnitude) * zoomSpeed * Time.deltaTime;
+                float newDistance = Vector3.Distance(target.position, Camera.main.transform.position) + zoomAmount;
+                newDistance = Mathf.Clamp(newDistance, minZoomDistance, maxZoomDistance);
+
+                Vector3 zoomDirection = (target.position - Camera.main.transform.position).normalized;
+                target.position = Camera.main.transform.position + zoomDirection * newDistance;
             }
         }
     }
